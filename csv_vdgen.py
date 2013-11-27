@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 #
+# Copyright (c) Qryptal Pte Ltd. All rights reserved.
+# The use of this source code is governed by a MIT-style
+# license that can be found in the LICENSE file.
 
 import sys, os
 import argparse
