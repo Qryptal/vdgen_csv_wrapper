@@ -26,7 +26,7 @@ def main(args, loglevel):
   #Open CSV File
   logging.info("Processing file: %s" % args.csvfilename)
   with open(args.csvfilename, 'rb') as csvfile:
-    dialect = csv.Sniffer().sniff(csvfile.read(1024))
+    dialect = csv.Sniffer().sniff(csvfile.readline())
     csvfile.seek(0)
     reader = csv.reader(csvfile, dialect)
 
@@ -40,7 +40,7 @@ def main(args, loglevel):
         cert_keys = row
       elif row:
         payload = ':'.join('%s:%s' % t for t in zip(cert_keys, row))
-        qrfilename = "QR"+"".join([c for c in row[0] if c.isalpha() or c.isdigit() or c==' ']).rstrip()[:40] + ".png"
+        qrfilename = args.imageprefix+"".join([c for c in row[0] if c.isalpha() or c.isdigit() or c==' ']).rstrip()[:40] + ".png"
 
         # cmd = "%s -t '%s' -f '%s' -p hello -s 164" % (args.vdgenbinary, payload, qrfilename)
         cmd = '%s -t "%s" -f "%s" -p "%s" -s %s' % (args.vdgenbinary, payload, qrfilename, args.passphrase, args.size)
@@ -72,6 +72,11 @@ if __name__ == '__main__':
                       "--vdgenbinary",
                       help="the name of the vdgen binary file",
                       default="vdgen-win64")
+  parser.add_argument(
+                      "-i",
+                      "--imageprefix",
+                      help="image file prefix",
+                      default="QR")
   parser.add_argument(
                       "-s",
                       "--size",
