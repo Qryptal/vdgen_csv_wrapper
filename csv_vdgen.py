@@ -54,16 +54,16 @@ def main(args, loglevel):
         payload = ':'.join('%s:%s' % t for t in zip(cert_keys, row))
 
         if outcsvwriter:
-            qrfilename = "CODECONTENT>>>"
+            qrfilename = "CODECONTENT"
             p = subprocess.Popen([args.vdgenbinary,
                                     '-t', "%s" % payload,
                                     '-f', "%s" % qrfilename,
                                     '-p', "%s" % args.passphrase,
                                  ],
-                                stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+                                stdout=subprocess.PIPE,stderr=subprocess.PIPE, stdin=subprocess.PIPE)
             pout, perr = p.communicate()
             logging.debug("CSV Save result:%s", pout)
-            qrdata = pout[16:-5]  #stripping off the header and filler including \n
+            qrdata = pout[14:-2]  #stripping off the header and filler including \n
             outcsvwriter.writerow(row+[qrdata,])
         else:
             qrfilename = args.imageprefix+"".join([c for c in row[0] if c.isalpha() or c.isdigit() or c==' ']).rstrip()[:40] + ".png"
