@@ -8,6 +8,7 @@ import sys, os
 import argparse
 import logging
 import csv
+import subprocess
 
 
 
@@ -23,6 +24,13 @@ def main(args, loglevel):
       args.vdgenbinary = ".//" + args.vdgenbinary
 
 
+  #Check if output is CSV
+  outcsvwriter = None
+  if args.outputcsv:
+      outcsvfile = open(args.outputcsv, 'wb')
+      outcsvwriter = csv.writer(outcsvfile)
+      logging.info("Created  output CSV file:%s", args.outputcsv)
+
   #Open CSV File
   logging.info("Processing file: %s" % args.csvfilename)
   with open(args.csvfilename, 'rb') as csvfile:
@@ -32,22 +40,41 @@ def main(args, loglevel):
 
     cert_keys = None
     i = 0
+
     for row in reader:
       logging.debug("CSV row:%s" % row)
 
       #first row gives the key names
       if not cert_keys:
         cert_keys = row
+        if outcsvwriter:
+            outcsvwriter.writerow(row+["QRData",])
+
       elif row:
         payload = ':'.join('%s:%s' % t for t in zip(cert_keys, row))
-        qrfilename = args.imageprefix+"".join([c for c in row[0] if c.isalpha() or c.isdigit() or c==' ']).rstrip()[:40] + ".png"
 
-        # cmd = "%s -t '%s' -f '%s' -p hello -s 164" % (args.vdgenbinary, payload, qrfilename)
-        cmd = '%s -t "%s" -f "%s" -p "%s" -s %s' % (args.vdgenbinary, payload, qrfilename, args.passphrase, args.size)
-        logging.debug("Cmd:%s", cmd)
-        output = os.system(cmd)
+        if outcsvwriter:
+            qrfilename = "CODECONTENT>>>"
+            p = subprocess.Popen([args.vdgenbinary,
+                                    '-t', "%s" % payload,
+                                    '-f', "%s" % qrfilename,
+                                    '-p', "%s" % args.passphrase,
+                                 ],
+                                stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            pout, perr = p.communicate()
+            logging.debug("CSV Save result:%s", pout)
+            qrdata = pout[16:-5]  #stripping off the header and filler including \n
+            outcsvwriter.writerow(row+[qrdata,])
+        else:
+            qrfilename = args.imageprefix+"".join([c for c in row[0] if c.isalpha() or c.isdigit() or c==' ']).rstrip()[:40] + ".png"
+            cmd = '%s -t "%s" -f "%s" -p "%s" -s %s' % (args.vdgenbinary, payload, qrfilename, args.passphrase, args.size)
+            logging.debug("Cmd:%s", cmd)
+            output = os.system(cmd)
         i += 1
   logging.info("Number of certficate QR Codes created: %s" % i)
+
+  if outcsvwriter:
+      outcsvfile.close()
 
 
 
@@ -87,6 +114,11 @@ if __name__ == '__main__':
                       "--verbose",
                       help="increase output verbosity",
                       action="store_true")
+  parser.add_argument(
+                      "-o",
+                      "--outputcsv",
+                      help="code content column is added to input csvfilename and no images are generated",
+                      metavar="OUTPUTCSV")
   args = parser.parse_args()
 
   # Setup logging
